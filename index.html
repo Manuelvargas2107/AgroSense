@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#174b35">
+  <title>AgroSense | Monitoreo de cultivos</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand-mark">🌱</div>
+    <div><h1>AgroSense</h1><p>Monitoreo inteligente de cultivos</p></div>
+    <span class="prototype">PROTOTIPO</span>
+  </header>
+
+  <main class="container">
+    <section class="intro">
+      <div><p class="eyebrow">PANEL AGRÍCOLA</p><h2>Mis sectores</h2>
+      <p class="muted">Controla la humedad y revisa cuándo conviene regar.</p></div>
+      <button id="addSectorBtn" class="primary">＋ Nuevo sector</button>
+    </section>
+
+    <section class="summary-grid" aria-label="Resumen">
+      <article class="summary-card"><span>Sectores registrados</span><strong id="sectorCount">0</strong></article>
+      <article class="summary-card"><span>Necesitan revisión de riego</span><strong id="alertCount">0</strong></article>
+      <article class="summary-card"><span>Sensores conectados</span><strong id="connectedCount">0</strong></article>
+    </section>
+
+    <div class="notice"><strong>Importante:</strong> esta versión es un prototipo. Las lecturas reales solo aparecerán al conectar y calibrar un ESP32 con sensor. La demostración usa datos simulados.</div>
+
+    <section class="toolbar">
+      <h3>Estado por sector</h3>
+      <button id="demoBtn" class="secondary">Usar demostración</button>
+    </section>
+    <section id="sectorList" class="sector-list"></section>
+
+    <section class="help-card">
+      <h3>Conexión Bluetooth</h3>
+      <p>Conecta el celular cerca del ESP32. Usa Chrome o Edge compatible y abre esta página en HTTPS o localhost.</p>
+      <p class="muted small">Web Bluetooth no es compatible con Safari en iPhone. Para iPhone se recomienda un gateway o una aplicación móvil nativa.</p>
+    </section>
+  </main>
+
+  <dialog id="sectorDialog">
+    <form id="sectorForm" method="dialog">
+      <div class="dialog-head"><h3 id="dialogTitle">Nuevo sector</h3><button type="button" class="icon-btn" id="closeDialog" aria-label="Cerrar">✕</button></div>
+      <input type="hidden" id="sectorId">
+      <label>Nombre del sector<input id="sectorName" required maxlength="40" placeholder="Ej. Invernadero norte"></label>
+      <label>Tipo de cultivo<input id="sectorCrop" required maxlength="40" placeholder="Ej. Tomates"></label>
+      <label>Umbral mínimo de humedad (%)<input id="sectorThreshold" type="number" min="1" max="99" value="35" required></label>
+      <div class="dialog-actions"><button type="button" id="cancelDialog" class="secondary">Cancelar</button><button class="primary" type="submit">Guardar sector</button></div>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="app.js"></script>
+</body>
+</html>
