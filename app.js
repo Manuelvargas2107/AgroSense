@@ -1,109 +1,65 @@
-const SERVICE_UUID = "7b6e0001-8f4a-4c2a-9b1e-5d6f7a8b9000";
-const HUMIDITY_UUID = "7b6e0002-8f4a-4c2a-9b1e-5d6f7a8b9000";
-const STORAGE_KEY = "agrosense.sectors.v1";
-let sectors = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null") || [
-  {id: crypto.randomUUID(), name:"Invernadero norte", crop:"Tomates", threshold:35, humidity:null, sensorName:"", connected:false, simulated:false},
-  {id: crypto.randomUUID(), name:"Parcela 2", crop:"Lechugas", threshold:40, humidity:null, sensorName:"", connected:false, simulated:false},
-  {id: crypto.randomUUID(), name:"Sector sur", crop:"Pimientos", threshold:30, humidity:null, sensorName:"", connected:false, simulated:false}
+const defaultSectors = [
+  {id:1,name:"Invernadero",moisture:32,threshold:40},
+  {id:2,name:"Hortalizas",moisture:58,threshold:35},
+  {id:3,name:"Frutales",moisture:24,threshold:30}
 ];
+let sectors = JSON.parse(localStorage.getItem("agrosense-sectors") || "null") || defaultSectors;
+let lastAlert = {};
 const $ = id => document.getElementById(id);
-function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(sectors)); }
-function toast(message){ const el=$("toast"); el.textContent=message; el.classList.add("show"); setTimeout(()=>el.classList.remove("show"),2600); }
-function statusOf(s){ if(s.humidity===null) return ["Sin lectura","warn"]; return s.humidity < s.threshold ? ["Revisar riego","danger"] : ["Humedad adecuada","good"]; }
+function save(){localStorage.setItem("agrosense-sectors",JSON.stringify(sectors))}
+function statusFor(s){return s.moisture < s.threshold ? "low" : s.moisture < s.threshold+10 ? "warn" : "good"}
+function labelFor(status){return status==="low"?"Humedad baja":status==="warn"?"Atención":"Nivel adecuado"}
 function render(){
-  $("sectorCount").textContent=sectors.length;
-  $("alertCount").textContent=sectors.filter(s=>s.humidity!==null && s.humidity<s.threshold).length;
-  $("connectedCount").textContent=sectors.filter(s=>s.connected).length;
-  $("sectorList").innerHTML="";
-  if(!sectors.length){ $("sectorList").innerHTML='<p class="muted">Aún no hay sectores. Crea el primero.</p>'; return; }
+  $("sectors").innerHTML = sectors.map(s=>{
+    const st=statusFor(s);
+    return `<article class="sector">
+      <div class="sector-head"><h3>${escapeHtml(s.name)}</h3><span class="status ${st}">${labelFor(st)}</span></div>
+      <div class="reading">${s.moisture}<small>% humedad</small></div>
+      <div class="meter"><span class="${st==="low"?"lowbar":""}" style="width:${s.moisture}%"></span></div>
+      <div class="threshold"><label for="threshold-${s.id}">Umbral mínimo</label><strong>${s.threshold}%</strong></div>
+      <input id="threshold-${s.id}" type="range" min="10" max="80" value="${s.threshold}" aria-label="Umbral de ${escapeHtml(s.name)}" data-threshold="${s.id}">
+      <div class="sector-actions"><button class="secondary" data-water="${s.id}">Simular riego</button><button class="secondary" data-rename="${s.id}">Cambiar nombre</button></div>
+    </article>`;
+  }).join("");
+  document.querySelectorAll("[data-threshold]").forEach(el=>el.addEventListener("input",e=>{
+    const s=sectors.find(x=>x.id===Number(e.target.dataset.threshold));s.threshold=Number(e.target.value);save();render();checkAlerts();
+  }));
+  document.querySelectorAll("[data-water]").forEach(el=>el.addEventListener("click",()=>{
+    const s=sectors.find(x=>x.id===Number(el.dataset.water));s.moisture=Math.min(100,s.moisture+20);save();addHistory(`Riego simulado en ${s.name}: ${s.moisture}%`);render();checkAlerts();
+  }));
+  document.querySelectorAll("[data-rename]").forEach(el=>el.addEventListener("click",()=>{
+    const s=sectors.find(x=>x.id===Number(el.dataset.rename));const name=prompt("Nuevo nombre del sector:",s.name);
+    if(name&&name.trim()){s.name=name.trim().slice(0,35);save();render()}
+  }));
+}
+function escapeHtml(v){return String(v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function addHistory(msg){const li=document.createElement("li");li.textContent=new Date().toLocaleTimeString("es-CL",{hour:"2-digit",minute:"2-digit"})+" · "+msg;$("history").prepend(li);while($("history").children.length>8)$("history").lastChild.remove()}
+function checkAlerts(){
   sectors.forEach(s=>{
-    const [label,cls]=statusOf(s);
-    const value=s.humidity===null?0:s.humidity;
-    const card=document.createElement("article"); card.className="sector-card";
-    card.innerHTML=`
-      <div class="sector-head"><div><h3></h3><p class="crop"></p></div><span class="pill ${cls}">${label}</span></div>
-      <div class="reading"><strong>${s.humidity===null?"—":value+"%"}</strong><span>${s.simulated?"Lectura simulada":s.humidity===null?"Esperando sensor":"Humedad del suelo"}</span></div>
-      <div class="meter"><span class="${s.humidity!==null && value<s.threshold?"low":""}" style="width:${value}%"></span></div>
-      <div class="meta"><span>0% seco</span><span>Umbral: ${s.threshold}%</span><span>100%</span></div>
-      <div class="sensor-line"><span class="sensor-state">${s.connected?"● Sensor conectado":s.sensorName?"Sensor: "+s.sensorName:"Sin sensor vinculado"}</span><span>${s.connected?"BLE":""}</span></div>
-      <div class="sensor-actions">
-        <button class="primary connect">Vincular sensor</button>
-        <button class="secondary edit">Editar</button>
-        <button class="secondary delete">Eliminar</button>
-      </div>`;
-    card.querySelector("h3").textContent=s.name;
-    card.querySelector(".crop").textContent=s.crop;
-    card.querySelector(".connect").addEventListener("click",()=>connectSensor(s.id));
-    card.querySelector(".edit").addEventListener("click",()=>openEdit(s.id));
-    card.querySelector(".delete").addEventListener("click",()=>removeSector(s.id));
-    $("sectorList").appendChild(card);
+    if(s.moisture<s.threshold && lastAlert[s.id]!==s.moisture){
+      addHistory(`ALERTA: ${s.name} está bajo el umbral (${s.moisture}% / mínimo ${s.threshold}%).`);
+      lastAlert[s.id]=s.moisture;
+      if("Notification" in window && Notification.permission==="granted"){
+        new Notification("AgroSense: humedad baja",{body:`${s.name}: ${s.moisture}% (mínimo ${s.threshold}%).`});
+      }
+    }
+    if(s.moisture>=s.threshold)delete lastAlert[s.id];
   });
 }
-function openEdit(id=null){
-  const s=sectors.find(x=>x.id===id);
-  $("dialogTitle").textContent=s?"Editar sector":"Nuevo sector";
-  $("sectorId").value=s?.id||"";
-  $("sectorName").value=s?.name||"";
-  $("sectorCrop").value=s?.crop||"";
-  $("sectorThreshold").value=s?.threshold??35;
-  $("sectorDialog").showModal();
-}
-function removeSector(id){
-  const s=sectors.find(x=>x.id===id);
-  if(!confirm(`¿Eliminar el sector "${s.name}"?`)) return;
-  sectors=sectors.filter(x=>x.id!==id); save(); render();
-}
-$("addSectorBtn").onclick=()=>openEdit();
-$("closeDialog").onclick=$("cancelDialog").onclick=()=>$("sectorDialog").close();
-$("sectorForm").addEventListener("submit",e=>{
-  e.preventDefault();
-  const id=$("sectorId").value;
-  const data={name:$("sectorName").value.trim(),crop:$("sectorCrop").value.trim(),threshold:Number($("sectorThreshold").value)};
-  if(id){ Object.assign(sectors.find(s=>s.id===id),data); }
-  else sectors.push({id:crypto.randomUUID(),...data,humidity:null,sensorName:"",connected:false,simulated:false});
-  save(); render(); $("sectorDialog").close(); toast("Sector guardado");
+$("addSector").addEventListener("click",()=>{
+  const name=prompt("Nombre del nuevo sector:");if(!name||!name.trim())return;
+  sectors.push({id:Date.now(),name:name.trim().slice(0,35),moisture:50,threshold:35});save();render();addHistory(`Sector ${name.trim()} agregado.`);
 });
-async function connectSensor(id){
-  const sector=sectors.find(s=>s.id===id);
-  if(!("bluetooth" in navigator)){ toast("Este navegador no ofrece Web Bluetooth. Prueba Chrome/Edge compatible."); return; }
-  if(!window.isSecureContext){ toast("Bluetooth requiere HTTPS o localhost."); return; }
-  try{
-    const device=await navigator.bluetooth.requestDevice({
-      filters:[{namePrefix:"AgroSense"}],
-      optionalServices:[SERVICE_UUID]
-    });
-    device.addEventListener("gattserverdisconnected",()=>{
-      sector.connected=false; save(); render(); toast("Sensor desconectado");
-    });
-    const server=await device.gatt.connect();
-    const service=await server.getPrimaryService(SERVICE_UUID);
-    const characteristic=await service.getCharacteristic(HUMIDITY_UUID);
-    await characteristic.startNotifications();
-    characteristic.addEventListener("characteristicvaluechanged",event=>{
-      const dv=event.target.value;
-      const humidity=dv.getUint8(0);
-      sector.humidity=Math.max(0,Math.min(100,humidity));
-      sector.sensorName=device.name||"AgroSense";
-      sector.connected=true; sector.simulated=false; save(); render();
-    });
-    sector.sensorName=device.name||"AgroSense";
-    sector.connected=true; sector.simulated=false;
-    // Lee el valor inicial si la característica lo permite.
-    try{
-      const initial=await characteristic.readValue();
-      sector.humidity=Math.max(0,Math.min(100,initial.getUint8(0)));
-    }catch(_){}
-    save(); render(); toast("Sensor vinculado a "+sector.name);
-  }catch(err){
-    console.error(err);
-    toast(err.name==="NotFoundError"?"No se seleccionó ningún sensor.":"No se pudo conectar: "+err.message);
-  }
-}
-$("demoBtn").onclick=()=>{
-  sectors.forEach(s=>{
-    s.humidity=Math.floor(18+Math.random()*65);
-    s.connected=false; s.sensorName="Modo demostración"; s.simulated=true;
-  });
-  save(); render(); toast("Se cargaron lecturas simuladas; no son datos físicos.");
-};
-render();
+$("simulate").addEventListener("click",()=>{
+  sectors.forEach(s=>s.moisture=Math.max(5,Math.min(95,s.moisture+Math.round(Math.random()*30-18))));
+  save();render();checkAlerts();addHistory("Se actualizaron las lecturas simuladas.");
+});
+$("enableNotifications").addEventListener("click",async()=>{
+  const out=$("notificationStatus");
+  if(!("Notification" in window)){out.textContent="Este navegador no permite notificaciones.";return}
+  const permission=await Notification.requestPermission();
+  out.textContent=permission==="granted"?"Permiso concedido. Recibirás avisos de prueba mientras la app esté activa.":permission==="denied"?"Permiso denegado. Puedes cambiarlo en los ajustes del navegador/iPhone.":"No se concedió el permiso.";
+  if(permission==="granted")new Notification("AgroSense",{body:"Notificaciones de prueba activadas."});
+});
+if("serviceWorker" in navigator && location.protocol!=="file:"){navigator.serviceWorker.register("./sw.js").catch(()=>{});}
+render();checkAlerts();addHistory("Aplicación iniciada en modo demostración.");

@@ -1,0 +1,10 @@
+{
+  "name": "AgroSense - Humedad de cultivos",
+  "short_name": "AgroSense",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f3f7f3",
+  "theme_color": "#1f6b45",
+  "icons": [{"src":"./icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]
+}
