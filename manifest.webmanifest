@@ -1,6 +1,6 @@
 {
-  "name": "AgroSense - Humedad de cultivos",
-  "short_name": "AgroSense",
+  "name": "AgroMaipo - Humedad de cultivos",
+  "short_name": "AgroMaipo",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

@@ -1,7 +1,8 @@
-# AgroSense actualizado
+# AgroMaipo actualizado
 
 ## Qué incluye
-- Tres sectores de ejemplo y posibilidad de agregar sectores.
+- Tres sectores de ejemplo y posibilidad de agregar sectores con nombre y tipo de cultivo.
+- Tipo de cultivo visible en cada tarjeta de sector.
 - Umbral mínimo de humedad configurable por sector.
 - Alertas visuales cuando una lectura cae bajo el umbral.
 - Simulación de nuevas lecturas y de riego.
@@ -17,12 +18,12 @@
 4. Pulsa "Simular nuevas lecturas" para probar cambios y alertas.
 
 ## Cómo actualizar tu GitHub Pages
-1. Entra a tu repositorio `AgroSense` en GitHub.
+1. Entra a tu repositorio `AgroMaipo` en GitHub.
 2. Abre la carpeta raíz donde actualmente están `index.html`, `app.js` y `styles.css`.
 3. Sube los archivos de esta carpeta `web` y acepta reemplazar los existentes.
 4. Verifica que también queden `manifest.webmanifest`, `sw.js` e `icon.svg` en la raíz del repositorio.
-5. Espera a que GitHub Pages publique los cambios.
-6. En el iPhone, cierra AgroSense y vuelve a abrirla desde su icono. Si ves la versión anterior, cierra Safari y vuelve a cargar el sitio.
+5. Espera a que GitHub Pages publique los cambios. El caché se actualizó a la versión v2 para facilitar que el iPhone cargue los archivos nuevos.
+6. En el iPhone, cierra AgroMaipo y vuelve a abrirla desde su icono. Si ves la versión anterior, cierra Safari y vuelve a cargar el sitio.
 
 ## Notificaciones en iPhone: alcance de esta versión
 El botón "Activar avisos de prueba" solicita permiso y puede mostrar notificaciones locales de prueba mientras la página está activa. **No implementa notificaciones push reales con la app cerrada.**

@@ -1,12 +1,12 @@
 const defaultSectors = [
-  {id:1,name:"Invernadero",moisture:32,threshold:40},
-  {id:2,name:"Hortalizas",moisture:58,threshold:35},
-  {id:3,name:"Frutales",moisture:24,threshold:30}
+  {id:1,name:"Invernadero",crop:"Tomate",moisture:32,threshold:40},
+  {id:2,name:"Hortalizas",crop:"Hortalizas variadas",moisture:58,threshold:35},
+  {id:3,name:"Frutales",crop:"Cítricos",moisture:24,threshold:30}
 ];
-let sectors = JSON.parse(localStorage.getItem("agrosense-sectors") || "null") || defaultSectors;
+let sectors = JSON.parse(localStorage.getItem("agromaipo-sectors") || "null") || defaultSectors;
 let lastAlert = {};
 const $ = id => document.getElementById(id);
-function save(){localStorage.setItem("agrosense-sectors",JSON.stringify(sectors))}
+function save(){localStorage.setItem("agromaipo-sectors",JSON.stringify(sectors))}
 function statusFor(s){return s.moisture < s.threshold ? "low" : s.moisture < s.threshold+10 ? "warn" : "good"}
 function labelFor(status){return status==="low"?"Humedad baja":status==="warn"?"Atención":"Nivel adecuado"}
 function render(){
@@ -14,6 +14,7 @@ function render(){
     const st=statusFor(s);
     return `<article class="sector">
       <div class="sector-head"><h3>${escapeHtml(s.name)}</h3><span class="status ${st}">${labelFor(st)}</span></div>
+      <p class="crop">Cultivo: <strong>${escapeHtml(s.crop || "No especificado")}</strong></p>
       <div class="reading">${s.moisture}<small>% humedad</small></div>
       <div class="meter"><span class="${st==="low"?"lowbar":""}" style="width:${s.moisture}%"></span></div>
       <div class="threshold"><label for="threshold-${s.id}">Umbral mínimo</label><strong>${s.threshold}%</strong></div>
@@ -40,15 +41,29 @@ function checkAlerts(){
       addHistory(`ALERTA: ${s.name} está bajo el umbral (${s.moisture}% / mínimo ${s.threshold}%).`);
       lastAlert[s.id]=s.moisture;
       if("Notification" in window && Notification.permission==="granted"){
-        new Notification("AgroSense: humedad baja",{body:`${s.name}: ${s.moisture}% (mínimo ${s.threshold}%).`});
+        new Notification("AgroMaipo: humedad baja",{body:`${s.name}: ${s.moisture}% (mínimo ${s.threshold}%).`});
       }
     }
     if(s.moisture>=s.threshold)delete lastAlert[s.id];
   });
 }
 $("addSector").addEventListener("click",()=>{
-  const name=prompt("Nombre del nuevo sector:");if(!name||!name.trim())return;
-  sectors.push({id:Date.now(),name:name.trim().slice(0,35),moisture:50,threshold:35});save();render();addHistory(`Sector ${name.trim()} agregado.`);
+  $("sectorForm").hidden=false;
+  $("sectorName").focus();
+});
+$("cancelAdd").addEventListener("click",()=>{
+  $("sectorForm").reset();
+  $("sectorForm").hidden=true;
+});
+$("sectorForm").addEventListener("submit",event=>{
+  event.preventDefault();
+  const name=$("sectorName").value.trim();
+  const crop=$("cropType").value.trim();
+  if(!name||!crop)return;
+  sectors.push({id:Date.now(),name:name.slice(0,35),crop,moisture:50,threshold:35});
+  save();render();addHistory(`Sector ${name} (${crop}) agregado.`);
+  $("sectorForm").reset();
+  $("sectorForm").hidden=true;
 });
 $("simulate").addEventListener("click",()=>{
   sectors.forEach(s=>s.moisture=Math.max(5,Math.min(95,s.moisture+Math.round(Math.random()*30-18))));
@@ -59,7 +74,7 @@ $("enableNotifications").addEventListener("click",async()=>{
   if(!("Notification" in window)){out.textContent="Este navegador no permite notificaciones.";return}
   const permission=await Notification.requestPermission();
   out.textContent=permission==="granted"?"Permiso concedido. Recibirás avisos de prueba mientras la app esté activa.":permission==="denied"?"Permiso denegado. Puedes cambiarlo en los ajustes del navegador/iPhone.":"No se concedió el permiso.";
-  if(permission==="granted")new Notification("AgroSense",{body:"Notificaciones de prueba activadas."});
+  if(permission==="granted")new Notification("AgroMaipo",{body:"Notificaciones de prueba activadas."});
 });
 if("serviceWorker" in navigator && location.protocol!=="file:"){navigator.serviceWorker.register("./sw.js").catch(()=>{});}
 render();checkAlerts();addHistory("Aplicación iniciada en modo demostración.");

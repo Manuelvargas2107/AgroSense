@@ -8,22 +8,40 @@
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="./styles.css">
-  <title>AgroSense</title>
+  <title>AgroMaipo</title>
 </head>
 <body>
   <header class="top">
-    <div><p class="eyebrow">MONITOREO DE CULTIVOS</p><h1>AgroSense</h1><p class="sub">Estado de humedad por sector</p></div>
+    <div><p class="eyebrow">MONITOREO DE CULTIVOS</p><h1>AgroMaipo</h1><p class="sub">Estado de humedad por sector</p></div>
     <span class="demo-tag">MODO DEMOSTRACIÓN</span>
   </header>
   <main>
     <section class="toolbar">
       <div><h2>Mis sectores</h2><p>Las lecturas son simuladas; no provienen de sensores reales.</p></div>
-      <button id="addSector" class="secondary">+ Agregar sector</button>
+      <button id="addSector" class="secondary" type="button">+ Agregar sector</button>
     </section>
+    <form id="sectorForm" class="panel sector-form" hidden>
+      <h2>Agregar nuevo sector</h2>
+      <div class="form-grid">
+        <label>Nombre del sector
+          <input id="sectorName" name="sectorName" type="text" maxlength="35" placeholder="Ej. Cuartel norte" required>
+        </label>
+        <label>Tipo de cultivo
+          <select id="cropType" name="cropType" required>
+            <option value="">Selecciona un cultivo</option>
+            <option>Tomate</option><option>Lechuga</option><option>Papa</option>
+            <option>Maíz</option><option>Palto</option><option>Cítricos</option>
+            <option>Uva</option><option>Frutillas</option><option>Hortalizas variadas</option>
+            <option>Otro</option>
+          </select>
+        </label>
+      </div>
+      <div class="form-actions"><button type="submit">Guardar sector</button><button id="cancelAdd" class="secondary" type="button">Cancelar</button></div>
+    </form>
     <div id="sectors" class="sector-grid" aria-live="polite"></div>
     <section class="panel">
       <h2>Notificaciones</h2>
-      <p>Activa el permiso para probar avisos en este iPhone mientras AgroSense está abierta.</p>
+      <p>Activa el permiso para probar avisos en este iPhone mientras AgroMaipo está abierta.</p>
       <button id="enableNotifications">Activar avisos de prueba</button>
       <p id="notificationStatus" class="muted" role="status">Permiso aún no solicitado.</p>
       <p class="small-note">Los avisos push cuando la aplicación está cerrada requieren configurar un servicio en la nube y un servidor que envíe las notificaciones. Esta versión todavía no incluye ese servicio.</p>
@@ -33,7 +51,7 @@
       <ul id="history" class="history"></ul>
     </section>
   </main>
-  <footer>AgroSense · Prototipo de demostración</footer>
+  <footer>AgroMaipo · Prototipo de demostración</footer>
   <script src="./app.js"></script>
 </body>
 </html>
